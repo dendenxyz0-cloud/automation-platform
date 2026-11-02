@@ -1,5 +1,4 @@
 from decimal import Decimal
-from datetime import datetime
 
 from sqlalchemy import (
     CheckConstraint,
@@ -69,4 +68,28 @@ class Order(Base):
             name="ck_order_status",
         ),
         CheckConstraint("quantity > 0", name="ck_order_quantity_positive"),
+    )
+
+
+class BotAccount(Base):
+    __tablename__ = "bot_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    platform = Column(String(32), nullable=False, index=True)
+    username = Column(String(255), nullable=False, index=True)
+    credentials_encrypted = Column(Text, nullable=False)
+    session_cookies = Column(Text, nullable=True)
+    status = Column(String(32), nullable=False, default="Active", server_default="Active")
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint(
+            "platform IN ('facebook', 'instagram', 'tiktok', 'discord', 'x')",
+            name="ck_bot_account_platform",
+        ),
+        CheckConstraint(
+            "status IN ('Active', 'Flagged', 'In-Use', 'Dead')",
+            name="ck_bot_account_status",
+        ),
     )
