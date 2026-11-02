@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -64,6 +68,12 @@ def create_order(
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
 
+    total_cost = (Decimal(str(service.price_per_hundred)) * Decimal(payload.quantity)) / Decimal("100")
+    if user.balance < total_cost:
+        raise HTTPException(status_code=402, detail="Insufficient balance to create this order")
+
+    user.balance -= total_cost
+
     order = Order(
         user_id=user.id,
         service_id=payload.service_id,
@@ -81,7 +91,7 @@ def create_order(
         "platform": payload.platform,
         "action_type": payload.action_type,
         "target_url": order.target_url,
-        "proxy": payload.proxy.model_dump() if payload.proxy else None,
+        "proxy": None,
     }
     process_order_task.delay(**task_payload)
     return _order_response(order)

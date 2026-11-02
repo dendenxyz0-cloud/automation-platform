@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 from playwright.async_api import BrowserContext
@@ -19,4 +21,10 @@ class InstagramHandler(BasePlatformHandler):
 
         self.logger.info("Executing Instagram action", extra={"action_type": action_type})
         navigation = await self._navigate(browser_context, target_url)
+        await self._apply_session_cookies(browser_context)
         return {"platform": "instagram", "action_type": action_type, **navigation}
+
+    async def _apply_session_cookies(self, browser_context: BrowserContext) -> None:
+        cookies = self.account.session_cookies or []
+        if cookies:
+            await browser_context.add_cookies(cookies)
