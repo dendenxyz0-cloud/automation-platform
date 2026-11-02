@@ -33,6 +33,8 @@ def create_order(payload: OrderCreate, db: Session = Depends(get_db)):
 
     task_payload = {
         "order_id": order.id,
+        "platform": payload.platform,
+        "action_type": payload.action_type,
         "target_url": order.target_url,
         "proxy": payload.proxy.model_dump() if payload.proxy else None,
     }

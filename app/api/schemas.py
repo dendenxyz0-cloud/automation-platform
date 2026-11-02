@@ -17,6 +17,8 @@ class OrderCreate(BaseModel):
 
     user_id: int
     service_id: int
+    platform: str = Field(..., pattern="^(facebook|instagram|tiktok|discord|x|test)$")
+    action_type: str = Field(default="navigate", min_length=1, max_length=64)
     target_url: HttpUrl
     quantity: int = Field(default=1, ge=1, le=10000)
     proxy: Optional[ProxyConfig] = None

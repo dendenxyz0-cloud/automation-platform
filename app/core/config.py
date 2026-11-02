@@ -8,6 +8,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     REDIS_URL: str
     SECRET_KEY: str
+    PROXY_CONFIGS_JSON: str = "[]"
+    PROXY_HEALTHCHECK_URL: str = "https://example.com/"
+    PROXY_HEALTHCHECK_TIMEOUT_MS: int = 5000
+    AUTOMATION_RATE_LIMIT_PER_HOUR: int = 30
+    COMPLIANCE_KILL_SWITCH: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,4 +1,5 @@
 from decimal import Decimal
+from enum import Enum
 
 from sqlalchemy import (
     CheckConstraint,
@@ -71,15 +72,33 @@ class Order(Base):
     )
 
 
+class BotPlatform(str, Enum):
+    FACEBOOK = "facebook"
+    INSTAGRAM = "instagram"
+    TIKTOK = "tiktok"
+    DISCORD = "discord"
+    X = "x"
+
+
+class BotAccountStatus(str, Enum):
+    ACTIVE = "Active"
+    FLAGGED = "Flagged"
+    IN_USE = "In-Use"
+    DEAD = "Dead"
+
+
 class BotAccount(Base):
     __tablename__ = "bot_accounts"
 
     id = Column(Integer, primary_key=True, index=True)
     platform = Column(String(32), nullable=False, index=True)
     username = Column(String(255), nullable=False, index=True)
+    # These values must be encrypted before persistence by the application layer.
+    # They are intentionally opaque to platform handlers and are never logged.
     credentials_encrypted = Column(Text, nullable=False)
     session_cookies = Column(Text, nullable=True)
-    status = Column(String(32), nullable=False, default="Active", server_default="Active")
+    status = Column(String(32), nullable=False, default=BotAccountStatus.ACTIVE.value,
+                    server_default=BotAccountStatus.ACTIVE.value, index=True)
     last_used_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -93,3 +112,16 @@ class BotAccount(Base):
             name="ck_bot_account_status",
         ),
     )
+
+
+class AutomationAuditLog(Base):
+    __tablename__ = "automation_audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True, index=True)
+    account_id = Column(Integer, ForeignKey("bot_accounts.id"), nullable=True, index=True)
+    platform = Column(String(32), nullable=False, index=True)
+    event_type = Column(String(64), nullable=False, index=True)
+    status = Column(String(32), nullable=False)
+    details = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
