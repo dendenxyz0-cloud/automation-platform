@@ -22,6 +22,40 @@ services:
     volumes:
       - redis_data:/data
 
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: automation-web
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/workspace
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: automation-worker
+    command: celery -A app.queue.celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/workspace
+
 volumes:
   postgres_data:
   redis_data:
