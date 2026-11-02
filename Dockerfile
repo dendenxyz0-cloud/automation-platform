@@ -12,6 +12,7 @@ RUN apt-get update \
         libnss3 \
         libatk-bridge2.0-0 \
         libatk1.0-0 \
+        libasound2 \
         libcups2 \
         libdrm2 \
         libgbm1 \

@@ -7,13 +7,13 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, AsyncIterator, Mapping, Optional
 
-from celery import shared_task
 from playwright.async_api import Browser, BrowserContext, async_playwright
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.models import AutomationAuditLog, BotAccount, BotAccountStatus, BotPlatform, Order
 from app.db.session import SessionLocal
+from app.queue.celery_app import celery_app
 from app.services.audit import record_audit_event
 from app.services.browser_runner import AuthorizedSessionManager
 from app.services.platform_handlers import (
@@ -282,7 +282,7 @@ def _check_compliance_kill_switch(order_id: int, platform: str) -> None:
     raise ComplianceKillSwitchError("Automation is disabled by the compliance kill switch")
 
 
-@shared_task(
+@celery_app.task(
     bind=True,
     name="process_order_task",
     autoretry_for=(NoAvailableAccountError, NoAvailableProxyError, RateLimitExceededError, ProxyHealthError),
