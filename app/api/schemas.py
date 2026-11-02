@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
@@ -15,9 +16,9 @@ class ProxyConfig(BaseModel):
 class OrderCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    user_id: int
+    user_id: Optional[int] = None
     service_id: int
-    platform: str = Field(..., pattern="^(facebook|instagram|tiktok|discord|x|test)$")
+    platform: str = Field(default="test", pattern="^(facebook|instagram|tiktok|discord|x|test)$")
     action_type: str = Field(default="navigate", min_length=1, max_length=64)
     target_url: HttpUrl
     quantity: int = Field(default=1, ge=1, le=10000)
@@ -31,3 +32,17 @@ class OrderResponse(BaseModel):
     target_url: str
     quantity: int
     status: str
+    created_at: Optional[datetime] = None
+
+
+class AuthCredentials(BaseModel):
+    email: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+class ServiceResponse(BaseModel):
+    id: int
+    name: str
+    type: str
+    price_per_hundred: float
+    description: Optional[str] = None

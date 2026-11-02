@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     PROXY_HEALTHCHECK_TIMEOUT_MS: int = 5000
     AUTOMATION_RATE_LIMIT_PER_HOUR: int = 30
     COMPLIANCE_KILL_SWITCH: bool = False
+    SESSION_MAX_AGE_SECONDS: int = 60 * 60 * 24 * 7
+    COOKIE_SECURE: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

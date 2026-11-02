@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automation Platform Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: { ink: '#10233f', mist: '#f5f8fc', brand: '#4263eb' },
+            boxShadow: { soft: '0 16px 45px rgba(28, 45, 76, 0.08)' }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body class="min-h-screen bg-mist text-ink antialiased">
+    <main class="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <header class="mb-8 flex items-center justify-between">
+        <a href="/dashboard" class="flex items-center gap-3" aria-label="Automation Platform home">
+          <span class="grid h-10 w-10 place-items-center rounded-2xl bg-brand text-lg font-black text-white shadow-soft">A</span>
+          <span>
+            <span class="block text-sm font-semibold tracking-wide text-slate-500">AUTOMATION</span>
+            <span class="block text-lg font-bold leading-none text-ink">Platform</span>
+          </span>
+        </a>
+        <div id="account-actions" class="hidden items-center gap-3">
+          <span id="user-email" class="hidden text-sm text-slate-500 sm:inline"></span>
+          <button id="logout-button" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">Log out</button>
+        </div>
+      </header>
+
+      <section id="auth-view" class="mx-auto max-w-md">
+        <div class="rounded-3xl bg-white p-6 shadow-soft sm:p-8">
+          <div class="mb-7">
+            <p class="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-brand">Welcome back</p>
+            <h1 id="auth-title" class="text-3xl font-bold tracking-tight">Sign in to your workspace</h1>
+            <p id="auth-subtitle" class="mt-2 text-sm leading-6 text-slate-500">Manage authorized automation tasks from any device.</p>
+          </div>
+          <div class="mb-6 grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
+            <button data-auth-mode="login" class="auth-tab rounded-xl px-3 py-2.5 text-sm font-semibold transition">Log in</button>
+            <button data-auth-mode="signup" class="auth-tab rounded-xl px-3 py-2.5 text-sm font-semibold transition">Create account</button>
+          </div>
+          <form id="auth-form" class="space-y-4" novalidate>
+            <label class="block">
+              <span class="mb-2 block text-sm font-semibold text-slate-700">Email</span>
+              <input id="auth-email" type="email" autocomplete="email" required class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 outline-none transition placeholder:text-slate-400 focus:border-brand focus:bg-white focus:ring-4 focus:ring-indigo-100" placeholder="you@company.com" />
+            </label>
+            <label class="block">
+              <span class="mb-2 block text-sm font-semibold text-slate-700">Password</span>
+              <input id="auth-password" type="password" autocomplete="current-password" minlength="8" required class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 outline-none transition placeholder:text-slate-400 focus:border-brand focus:bg-white focus:ring-4 focus:ring-indigo-100" placeholder="At least 8 characters" />
+            </label>
+            <p id="auth-error" class="hidden rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"></p>
+            <button class="h-12 w-full rounded-2xl bg-brand px-4 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200" type="submit"><span id="auth-submit-label">Continue</span></button>
+          </form>
+        </div>
+      </section>
+
+      <section id="dashboard-view" class="hidden">
+        <div class="mb-8 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+          <div class="rounded-3xl bg-ink p-6 text-white shadow-soft sm:p-8">
+            <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-indigo-200">Workspace overview</p>
+            <h1 class="max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">Run your authorized workflows with clarity.</h1>
+            <p class="mt-4 max-w-xl text-sm leading-6 text-slate-300">Create a task, monitor its progress, and keep your team’s automation queue organized from a phone-friendly control panel.</p>
+          </div>
+          <div class="rounded-3xl bg-white p-6 shadow-soft sm:p-8">
+            <p class="text-sm font-semibold text-slate-500">Open orders</p>
+            <p id="open-order-count" class="mt-3 text-4xl font-bold text-ink">0</p>
+            <p class="mt-2 text-sm text-slate-500">Pending or processing tasks</p>
+          </div>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+          <section class="rounded-3xl bg-white p-5 shadow-soft sm:p-7">
+            <div class="mb-6">
+              <p class="text-sm font-semibold uppercase tracking-[0.16em] text-brand">New order</p>
+              <h2 class="mt-2 text-2xl font-bold">Create a task</h2>
+              <p class="mt-2 text-sm leading-6 text-slate-500">Use a local or staging fixture URL for test-mode workflows.</p>
+            </div>
+            <form id="order-form" class="space-y-4" novalidate>
+              <label class="block">
+                <span class="mb-2 block text-sm font-semibold text-slate-700">Service category</span>
+                <select id="service-id" required class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 outline-none transition focus:border-brand focus:bg-white focus:ring-4 focus:ring-indigo-100"><option value="">Loading services…</option></select>
+              </label>
+              <label class="block">
+                <span class="mb-2 block text-sm font-semibold text-slate-700">Target URL</span>
+                <input id="target-url" type="url" required class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 outline-none transition placeholder:text-slate-400 focus:border-brand focus:bg-white focus:ring-4 focus:ring-indigo-100" placeholder="http://localhost:8000/docs" />
+              </label>
+              <label class="block">
+                <span class="mb-2 block text-sm font-semibold text-slate-700">Quantity</span>
+                <input id="quantity" type="number" min="1" max="10000" value="1" required class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 outline-none transition focus:border-brand focus:bg-white focus:ring-4 focus:ring-indigo-100" />
+              </label>
+              <p id="order-error" class="hidden rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"></p>
+              <p id="order-success" class="hidden rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"></p>
+              <button class="h-12 w-full rounded-2xl bg-ink px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200" type="submit">Submit order</button>
+            </form>
+          </section>
+
+          <section class="rounded-3xl bg-white p-5 shadow-soft sm:p-7">
+            <div class="mb-6 flex items-end justify-between gap-4">
+              <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.16em] text-brand">Activity</p>
+                <h2 class="mt-2 text-2xl font-bold">Order tracking</h2>
+              </div>
+              <button id="refresh-orders" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Refresh</button>
+            </div>
+            <div id="orders-list" class="space-y-3" aria-live="polite"></div>
+            <div id="orders-empty" class="rounded-2xl border border-dashed border-slate-200 px-5 py-10 text-center text-sm text-slate-500">No orders yet. Create your first task to see it here.</div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const state = { mode: 'login', poller: null };
+      const $ = (id) => document.getElementById(id);
+      const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+
+      function showMessage(id, message, visible = true) {
+        $(id).textContent = message;
+        $(id).classList.toggle('hidden', !visible);
+      }
+
+      async function api(path, options = {}) {
+        const response = await fetch(path, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
+        if (response.status === 204) return null;
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.detail || 'Something went wrong. Please try again.');
+        return data;
+      }
+
+      function setAuthMode(mode) {
+        state.mode = mode;
+        const signup = mode === 'signup';
+        $('auth-title').textContent = signup ? 'Create your workspace' : 'Sign in to your workspace';
+        $('auth-subtitle').textContent = signup ? 'Use an organization-managed email to get started.' : 'Manage authorized automation tasks from any device.';
+        $('auth-submit-label').textContent = signup ? 'Create account' : 'Continue';
+        $('auth-password').autocomplete = signup ? 'new-password' : 'current-password';
+        document.querySelectorAll('.auth-tab').forEach((tab) => {
+          const active = tab.dataset.authMode === mode;
+          tab.classList.toggle('bg-white', active);
+          tab.classList.toggle('text-ink', active);
+          tab.classList.toggle('text-slate-500', !active);
+          tab.classList.toggle('shadow-sm', active);
+        });
+        showMessage('auth-error', '', false);
+      }
+
+      function showDashboard(user) {
+        $('auth-view').classList.add('hidden');
+        $('dashboard-view').classList.remove('hidden');
+        $('account-actions').classList.add('flex');
+        $('user-email').textContent = user.email;
+        loadServices();
+        loadOrders();
+        if (!state.poller) state.poller = setInterval(loadOrders, 5000);
+      }
+
+      function showAuth() {
+        $('auth-view').classList.remove('hidden');
+        $('dashboard-view').classList.add('hidden');
+        $('account-actions').classList.remove('flex');
+        if (state.poller) { clearInterval(state.poller); state.poller = null; }
+      }
+
+      function statusBadge(status) {
+        const styles = {
+          Pending: 'bg-slate-100 text-slate-600',
+          Processing: 'bg-blue-50 text-blue-700 ring-1 ring-blue-100',
+          Completed: 'bg-emerald-50 text-emerald-700',
+          Cancelled: 'bg-rose-50 text-rose-700'
+        };
+        const pulse = status === 'Processing' ? '<span class="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-600"></span>' : '';
+        return `<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${styles[status] || styles.Pending}">${pulse}${escapeHtml(status)}</span>`;
+      }
+
+      async function loadServices() {
+        try {
+          const services = await api('/api/v1/services');
+          $('service-id').innerHTML = '<option value="">Select a service</option>' + services.map((service) => `<option value="${service.id}">${escapeHtml(service.name)} · ${escapeHtml(service.type)}</option>`).join('');
+        } catch (error) { showMessage('order-error', error.message); }
+      }
+
+      async function loadOrders() {
+        try {
+          const orders = await api('/api/v1/orders');
+          const open = orders.filter((order) => ['Pending', 'Processing'].includes(order.status)).length;
+          $('open-order-count').textContent = open;
+          $('orders-empty').classList.toggle('hidden', orders.length > 0);
+          $('orders-list').innerHTML = orders.map((order) => `
+            <article class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0"><p class="text-sm font-bold text-ink">Order #${order.id}</p><p class="mt-1 truncate text-sm text-slate-500" title="${escapeHtml(order.target_url)}">${escapeHtml(order.target_url)}</p></div>
+                <div class="shrink-0">${statusBadge(order.status)}</div>
+              </div>
+              <div class="mt-4 flex items-center justify-between text-xs text-slate-400"><span>${order.created_at ? new Date(order.created_at).toLocaleString() : 'Just now'}</span><span>Qty ${order.quantity}</span></div>
+            </article>`).join('');
+        } catch (error) {
+          if (error.message.toLowerCase().includes('authentication')) showAuth();
+        }
+      }
+
+      document.querySelectorAll('.auth-tab').forEach((tab) => tab.addEventListener('click', () => setAuthMode(tab.dataset.authMode)));
+      $('auth-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const email = $('auth-email').value.trim();
+        const password = $('auth-password').value;
+        if (!email || !email.includes('@') || password.length < 8) return showMessage('auth-error', 'Enter a valid email and a password of at least 8 characters.');
+        try {
+          const user = await api(`/api/v1/auth/${state.mode === 'signup' ? 'signup' : 'login'}`, { method: 'POST', body: JSON.stringify({ email, password }) });
+          showDashboard(user);
+        } catch (error) { showMessage('auth-error', error.message); }
+      });
+
+      $('order-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        showMessage('order-error', '', false); showMessage('order-success', '', false);
+        const serviceId = Number($('service-id').value);
+        const targetUrl = $('target-url').value.trim();
+        const quantity = Number($('quantity').value);
+        if (!serviceId || !targetUrl || !Number.isInteger(quantity) || quantity < 1 || quantity > 10000) return showMessage('order-error', 'Choose a service, enter a valid URL, and use a quantity from 1 to 10,000.');
+        try {
+          const order = await api('/api/v1/orders', { method: 'POST', body: JSON.stringify({ service_id: serviceId, target_url: targetUrl, quantity, platform: 'test', action_type: 'navigate' }) });
+          showMessage('order-success', `Order #${order.id} was queued successfully.`);
+          $('target-url').value = ''; $('quantity').value = '1'; loadOrders();
+        } catch (error) { showMessage('order-error', error.message); }
+      });
+
+      $('refresh-orders').addEventListener('click', loadOrders);
+      $('logout-button').addEventListener('click', async () => { try { await api('/api/v1/auth/logout', { method: 'POST' }); } finally { showAuth(); } });
+      setAuthMode('login');
+      api('/api/v1/auth/me').then(showDashboard).catch(showAuth);
+    </script>
+  </body>
+</html>
