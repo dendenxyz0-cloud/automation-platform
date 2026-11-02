@@ -10,6 +10,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    Boolean,
     func,
 )
 from sqlalchemy.orm import relationship
@@ -24,6 +25,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     balance = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    is_admin = Column(Boolean, nullable=False, default=False, server_default="false")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     orders = relationship("Order", back_populates="user")

@@ -21,18 +21,22 @@ from app.services.platform_handlers import (
     AccountLockedError,
     BasePlatformHandler,
     DiscordHandler,
+    FacebookHandler,
     InstagramHandler,
     PlatformActionError,
     ProxyExpiredError,
     SessionExpiredError,
     TestFixtureHandler,
+    TikTokHandler,
 )
 from app.services.proxy_health import ProxyHealthError, check_proxy_health
 
 logger = logging.getLogger(__name__)
 
 _HANDLER_TYPES: dict[str, type[BasePlatformHandler]] = {
+    BotPlatform.FACEBOOK.value: FacebookHandler,
     BotPlatform.INSTAGRAM.value: InstagramHandler,
+    BotPlatform.TIKTOK.value: TikTokHandler,
     BotPlatform.DISCORD.value: DiscordHandler,
     "test": TestFixtureHandler,
 }

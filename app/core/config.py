@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -10,7 +8,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     REDIS_URL: str
     SECRET_KEY: str
-    ENCRYPTION_KEY: str | None = None
+    ENCRYPTION_KEY: str = ""
     PROXY_CONFIGS_JSON: str = "[]"
     PROXY_HEALTHCHECK_URL: str = "https://example.com/"
     PROXY_HEALTHCHECK_TIMEOUT_MS: int = 5000

@@ -10,6 +10,15 @@ from app.services.auth import AuthError, create_session_token, hash_password, ve
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _user_payload(user: User) -> dict:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "balance": float(user.balance),
+        "is_admin": user.is_admin,
+    }
+
+
 def _set_session_cookie(response: Response, user: User) -> None:
     response.set_cookie(
         key="session",
@@ -36,7 +45,7 @@ def signup(payload: AuthCredentials, response: Response, db: Session = Depends(g
     db.commit()
     db.refresh(user)
     _set_session_cookie(response, user)
-    return {"id": user.id, "email": user.email}
+    return _user_payload(user)
 
 
 @router.post("/login")
@@ -46,7 +55,7 @@ def login(payload: AuthCredentials, response: Response, db: Session = Depends(ge
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     _set_session_cookie(response, user)
-    return {"id": user.id, "email": user.email}
+    return _user_payload(user)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -57,4 +66,4 @@ def logout(response: Response) -> Response:
 
 @router.get("/me")
 def me(user: User = Depends(get_current_user)):
-    return {"id": user.id, "email": user.email}
+    return _user_payload(user)

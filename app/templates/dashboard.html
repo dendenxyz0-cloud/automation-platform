@@ -69,6 +69,11 @@
             <p class="text-sm font-semibold text-slate-500">Open orders</p>
             <p id="open-order-count" class="mt-3 text-4xl font-bold text-ink">0</p>
             <p class="mt-2 text-sm text-slate-500">Pending or processing tasks</p>
+            <div class="mt-6 border-t border-slate-100 pt-5">
+              <p class="text-sm font-semibold text-slate-500">Available balance</p>
+              <p id="user-balance" class="mt-2 text-2xl font-bold text-emerald-600">$0.00</p>
+              <p class="mt-1 text-xs text-slate-400">Charges are reserved when an order is queued.</p>
+            </div>
           </div>
         </div>
 
@@ -110,6 +115,21 @@
             <div id="orders-empty" class="rounded-2xl border border-dashed border-slate-200 px-5 py-10 text-center text-sm text-slate-500">No orders yet. Create your first task to see it here.</div>
           </section>
         </div>
+
+        <section id="admin-view" class="mt-6 hidden rounded-3xl bg-white p-5 shadow-soft sm:p-7">
+          <div class="mb-6 flex items-start justify-between gap-4">
+            <div>
+              <p class="text-sm font-semibold uppercase tracking-[0.16em] text-brand">Admin view</p>
+              <h2 class="mt-2 text-2xl font-bold">Platform performance</h2>
+            </div>
+            <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">Protected</span>
+          </div>
+          <div id="admin-account-stats" class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4"></div>
+          <div>
+            <h3 class="mb-3 text-sm font-bold text-slate-700">Latest audit activity</h3>
+            <div id="admin-audits" class="space-y-2"></div>
+          </div>
+        </section>
       </section>
     </main>
 
@@ -153,8 +173,10 @@
         $('dashboard-view').classList.remove('hidden');
         $('account-actions').classList.add('flex');
         $('user-email').textContent = user.email;
+        $('user-balance').textContent = `$${Number(user.balance || 0).toFixed(2)}`;
         loadServices();
         loadOrders();
+        if (user.is_admin) { $('admin-view').classList.remove('hidden'); loadAdmin(); }
         if (!state.poller) state.poller = setInterval(loadOrders, 5000);
       }
 
@@ -162,6 +184,7 @@
         $('auth-view').classList.remove('hidden');
         $('dashboard-view').classList.add('hidden');
         $('account-actions').classList.remove('flex');
+        $('admin-view').classList.add('hidden');
         if (state.poller) { clearInterval(state.poller); state.poller = null; }
       }
 
@@ -202,6 +225,17 @@
         }
       }
 
+      async function loadAdmin() {
+        try {
+          const data = await api('/api/v1/admin/metrics');
+          const labels = [['Active', data.accounts.active, 'text-emerald-600'], ['Flagged', data.accounts.flagged, 'text-amber-600'], ['In use', data.accounts.in_use, 'text-blue-600'], ['Dead', data.accounts.dead, 'text-rose-600']];
+          $('admin-account-stats').innerHTML = labels.map(([label, value, color]) => `<div class="rounded-2xl bg-slate-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">${label}</p><p class="mt-2 text-2xl font-bold ${color}">${value}</p></div>`).join('');
+          $('admin-audits').innerHTML = data.audit_logs.length ? data.audit_logs.map((entry) => `<div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-2 text-xs"><span class="font-semibold text-slate-700">${escapeHtml(entry.event_type)}</span><span class="text-slate-400">${escapeHtml(entry.platform)} · ${escapeHtml(entry.status)} · ${entry.created_at ? new Date(entry.created_at).toLocaleString() : ''}</span></div>`).join('') : '<p class="text-sm text-slate-400">No audit events yet.</p>';
+        } catch (error) {
+          if (error.message.toLowerCase().includes('administrator')) $('admin-view').classList.add('hidden');
+        }
+      }
+
       document.querySelectorAll('.auth-tab').forEach((tab) => tab.addEventListener('click', () => setAuthMode(tab.dataset.authMode)));
       $('auth-form').addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -225,6 +259,7 @@
           const order = await api('/api/v1/orders', { method: 'POST', body: JSON.stringify({ service_id: serviceId, target_url: targetUrl, quantity, platform: 'test', action_type: 'navigate' }) });
           showMessage('order-success', `Order #${order.id} was queued successfully.`);
           $('target-url').value = ''; $('quantity').value = '1'; loadOrders();
+          api('/api/v1/auth/me').then((user) => { $('user-balance').textContent = `$${Number(user.balance || 0).toFixed(2)}`; });
         } catch (error) { showMessage('order-error', error.message); }
       });
 

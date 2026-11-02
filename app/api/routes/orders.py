@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,12 +6,13 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.api.schemas import OrderCreate, OrderResponse, ServiceResponse
 from app.db.models import Order, ServiceCatalog, User
+from app.db.session import SessionLocal
 from app.tasks.orders import process_order_task
 
 router = APIRouter(tags=["orders"])
 
 
-def _order_response(order: Order) -> OrderResponse:
+def _order_response(order: Order, total_cost: Decimal | None = None) -> OrderResponse:
     return OrderResponse(
         id=order.id,
         user_id=order.user_id,
@@ -22,6 +21,7 @@ def _order_response(order: Order) -> OrderResponse:
         quantity=order.quantity,
         status=order.status,
         created_at=order.created_at,
+        total_cost=float(total_cost) if total_cost is not None else None,
     )
 
 
@@ -68,20 +68,23 @@ def create_order(
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
 
-    total_cost = (Decimal(str(service.price_per_hundred)) * Decimal(payload.quantity)) / Decimal("100")
-    if user.balance < total_cost:
-        raise HTTPException(status_code=402, detail="Insufficient balance to create this order")
-
-    user.balance -= total_cost
+    locked_user = db.query(User).filter(User.id == user.id).with_for_update().one()
+    unit_price = Decimal(service.price_per_hundred)
+    total_cost = unit_price * Decimal(payload.quantity)
+    if locked_user.balance < total_cost:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient balance. Required {total_cost:.2f}; available {locked_user.balance:.2f}.",
+        )
 
     order = Order(
-        user_id=user.id,
+        user_id=locked_user.id,
         service_id=payload.service_id,
         target_url=str(payload.target_url),
         quantity=payload.quantity,
         status="Pending",
     )
-
+    locked_user.balance -= total_cost
     db.add(order)
     db.commit()
     db.refresh(order)
@@ -91,7 +94,17 @@ def create_order(
         "platform": payload.platform,
         "action_type": payload.action_type,
         "target_url": order.target_url,
-        "proxy": None,
+        "proxy": payload.proxy.model_dump() if payload.proxy else None,
     }
-    process_order_task.delay(**task_payload)
-    return _order_response(order)
+    try:
+        process_order_task.delay(**task_payload)
+    except Exception as exc:
+        with SessionLocal() as refund_db:
+            refund_user = refund_db.query(User).filter(User.id == locked_user.id).with_for_update().one()
+            refund_order = refund_db.query(Order).filter(Order.id == order.id).one()
+            refund_user.balance += total_cost
+            refund_order.status = "Cancelled"
+            refund_db.commit()
+        raise HTTPException(status_code=503, detail="The task queue is temporarily unavailable") from exc
+
+    return _order_response(order, total_cost)

@@ -2,24 +2,35 @@ from __future__ import annotations
 
 import os
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
+
+from app.core.config import settings
 
 
-def get_fernet() -> Fernet:
-    key = os.getenv("ENCRYPTION_KEY") or os.getenv("SECRET_KEY")
+class CredentialEncryptionError(ValueError):
+    pass
+
+
+def _fernet() -> Fernet:
+    key = os.getenv("ENCRYPTION_KEY") or settings.ENCRYPTION_KEY
     if not key:
-        raise RuntimeError("ENCRYPTION_KEY is not configured")
-
-    normalized = key.encode("utf-8")
-    if len(normalized) < 32:
-        normalized = normalized.ljust(32, b"0")
-    if len(normalized) > 32:
-        normalized = normalized[:32]
-
-    return Fernet(base64_urlsafe(normalized))
+        raise CredentialEncryptionError("ENCRYPTION_KEY is not configured")
+    try:
+        return Fernet(key.encode() if isinstance(key, str) else key)
+    except (ValueError, TypeError) as exc:
+        raise CredentialEncryptionError("ENCRYPTION_KEY is not a valid Fernet key") from exc
 
 
-def base64_urlsafe(value: bytes) -> bytes:
-    import base64
+def encrypt_credentials(plaintext: str) -> str:
+    if not plaintext:
+        raise CredentialEncryptionError("Credentials cannot be empty")
+    return _fernet().encrypt(plaintext.encode()).decode()
 
-    return base64.urlsafe_b64encode(value)
+
+def decrypt_credentials(ciphertext: str) -> str:
+    if not ciphertext:
+        raise CredentialEncryptionError("Encrypted credentials cannot be empty")
+    try:
+        return _fernet().decrypt(ciphertext.encode()).decode()
+    except (InvalidToken, UnicodeDecodeError) as exc:
+        raise CredentialEncryptionError("Credentials could not be decrypted") from exc

@@ -1,87 +1,41 @@
 from __future__ import annotations
 
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from decimal import Decimal
 
-from app.core.config import settings
-from app.db.base import Base
+from app.db.models import ServiceCatalog
 from app.db.session import SessionLocal
 
 
-SERVICE_SEED = [
+DEFAULT_SERVICES = (
     {
-        "name": "Premium Global Follows",
-        "type": "social_distribution",
-        "price_per_hundred": 1.25,
-        "description": "Managed premium follow delivery across global audiences.",
-    },
-    {
-        "name": "Instagram Story Likes",
-        "type": "social_distribution",
-        "price_per_hundred": 1.40,
-        "description": "Category for story engagement actions on Instagram.",
-    },
-    {
-        "name": "Facebook Profile Visits",
-        "type": "social_distribution",
-        "price_per_hundred": 1.10,
-        "description": "Profile and content visit actions for Facebook campaigns.",
-    },
-    {
-        "name": "TikTok Content Views",
-        "type": "social_distribution",
-        "price_per_hundred": 1.35,
-        "description": "View-based distribution tasks for TikTok content exposure.",
-    },
-    {
-        "name": "Discord Community Pulse",
-        "type": "social_distribution",
-        "price_per_hundred": 1.55,
-        "description": "Community reach and engagement actions for Discord channels.",
-    },
-    {
-        "name": "Web Scrape Audit",
+        "name": "Automated Profile Status Verification",
         "type": "scrape",
-        "price_per_hundred": 1.80,
-        "description": "Standard scrape and page validation processing for URLs.",
+        "price_per_hundred": Decimal("1.00"),
+        "description": "Authorized status checks against approved fixtures or APIs.",
     },
     {
-        "name": "API Contract Check",
-        "type": "api_test",
-        "price_per_hundred": 1.95,
-        "description": "API validation and health-check workflows for test environments.",
+        "name": "Cross-Platform Media Performance Test",
+        "type": "social_distribution",
+        "price_per_hundred": Decimal("1.50"),
+        "description": "Staging-only media workflow validation across approved integrations.",
     },
-]
+    {
+        "name": "Distributed Response Monitoring Sync",
+        "type": "api_test",
+        "price_per_hundred": Decimal("0.75"),
+        "description": "Distributed response and availability checks for owned services.",
+    },
+)
 
 
-def seed_service_catalog() -> int:
-    db: Session = SessionLocal()
-    try:
-        count = db.execute(text("SELECT COUNT(*) FROM service_catalog")).scalar_one()
-        if count > 0:
-            return int(count)
-
-        for service in SERVICE_SEED:
-            db.execute(
-                text(
-                    """
-                    INSERT INTO service_catalog (name, type, price_per_hundred, description)
-                    VALUES (:name, :type, :price_per_hundred, :description)
-                    """
-                ),
-                {
-                    "name": service["name"],
-                    "type": service["type"],
-                    "price_per_hundred": service["price_per_hundred"],
-                    "description": service["description"],
-                },
-            )
+def seed_services() -> int:
+    with SessionLocal() as db:
+        if db.query(ServiceCatalog).count() > 0:
+            return 0
+        db.add_all(ServiceCatalog(**service) for service in DEFAULT_SERVICES)
         db.commit()
-        return len(SERVICE_SEED)
-    finally:
-        db.close()
+        return len(DEFAULT_SERVICES)
 
 
 if __name__ == "__main__":
-    seed_service_catalog()
-    print("Service catalog seeded successfully.")
+    print(f"seeded_services={seed_services()}")

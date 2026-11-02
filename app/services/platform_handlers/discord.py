@@ -1,8 +1,4 @@
-from __future__ import annotations
-
-import json
-import random
-from typing import Any, Mapping
+from typing import Any
 
 from playwright.async_api import BrowserContext
 
@@ -11,6 +7,10 @@ from app.services.platform_handlers.base import BasePlatformHandler, PlatformAct
 
 class DiscordHandler(BasePlatformHandler):
     """Placeholder for Discord-specific, explicitly bounded browser actions."""
+
+    async def run_platform_action(self, page, target_url: str) -> dict[str, Any]:
+        response = await page.goto(target_url, wait_until="domcontentloaded", timeout=30_000)
+        return {"status_code": response.status if response else None, "title": await page.title()}
 
     async def execute_action(
         self,
@@ -22,15 +22,9 @@ class DiscordHandler(BasePlatformHandler):
             raise PlatformActionError("action_type is required")
 
         self.logger.info("Executing Discord action", extra={"action_type": action_type})
-        await self._apply_session_cookies(browser_context)
-        navigation = await self._navigate(browser_context, target_url)
-        return {"platform": "discord", "action_type": action_type, **navigation}
-
-    async def _apply_session_cookies(self, browser_context: BrowserContext) -> None:
-        cookies = self.account.session_cookies or []
-        if cookies:
-            await browser_context.add_cookies(cookies)
-
-    async def _human_scroll(self, page: any) -> None:
-        for _ in range(random.randint(1, 3)):
-            await page.mouse.wheel(0, random.randint(100, 450))
+        page = await browser_context.new_page()
+        try:
+            navigation = await self.run_platform_action(page, target_url)
+            return {"platform": "discord", "action_type": action_type, **navigation}
+        finally:
+            await page.close()
