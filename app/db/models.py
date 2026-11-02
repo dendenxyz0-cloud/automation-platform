@@ -1,0 +1,72 @@
+from decimal import Decimal
+from datetime import datetime
+
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.orm import relationship
+
+from app.db.base import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    balance = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    orders = relationship("Order", back_populates="user")
+
+
+class ServiceCatalog(Base):
+    __tablename__ = "service_catalog"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False, unique=True, index=True)
+    type = Column(String(50), nullable=False)
+    price_per_hundred = Column(Numeric(10, 2), nullable=False)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    orders = relationship("Order", back_populates="service")
+
+    __table_args__ = (
+        CheckConstraint(
+            "type IN ('scrape', 'api_test', 'social_distribution')",
+            name="ck_service_type",
+        ),
+    )
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    service_id = Column(Integer, ForeignKey("service_catalog.id"), nullable=False, index=True)
+    target_url = Column(String(2048), nullable=False)
+    quantity = Column(Integer, nullable=False, default=1)
+    status = Column(String(32), nullable=False, default="Pending", server_default="Pending")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user = relationship("User", back_populates="orders")
+    service = relationship("ServiceCatalog", back_populates="orders")
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('Pending', 'Processing', 'Completed', 'Cancelled')",
+            name="ck_order_status",
+        ),
+        CheckConstraint("quantity > 0", name="ck_order_quantity_positive"),
+    )
